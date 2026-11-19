@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en"><head>
+<script>
+try { window.localStorage.getItem('x') } catch (e) {
+  const store = new Map(); const shim = { getItem: k => store.has(k) ? store.get(k) : null, setItem: (k,v) => { store.set(k,String(v)) }, removeItem: k => { store.delete(k) }, clear: () => { store.clear() }, key: i => Array.from(store.keys())[i] ?? null, get length() { return store.size } }; Object.defineProperty(window,'localStorage',{value:shim,configurable:true})
+}
+</script>
+<style>
+/* Tokens: follow Figma theme variables (light/dark) with safe fallbacks */
+:root{
+  --c-bg:var(--figma-color-bg,#fff);
+  --c-bg-2:var(--figma-color-bg-secondary,#f5f5f5);
+  --c-border:var(--figma-color-border,#e6e6e6);
+  --c-text:var(--figma-color-text,#222);
+  --c-text-2:var(--figma-color-text-secondary,#6b6b6b);
+  --c-brand:var(--figma-color-bg-brand,#0d99ff);
+  --c-ok:var(--figma-color-icon-success,#14ae5c);
+  --c-warn-bg:var(--figma-color-bg-warning-tertiary,rgba(255,170,0,.14));
+  --c-warn-text:var(--figma-color-text-warning,#b26a00);
+  --c-danger:var(--figma-color-text-danger,#d92d20);
+  --r:8px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:auto;min-height:0;overflow:hidden;background:var(--c-bg);color:var(--c-text);font-family:var(--font-family,Inter,system-ui,sans-serif);font-size:13px;line-height:1.5}
+#plugin-root{display:flex;flex-direction:column;height:auto;max-height:var(--plugin-max-height,720px);min-width:0;overflow:hidden}
+#plugin-root>fig-header,#plugin-root>fig-footer{flex-shrink:0}
+#plugin-root>fig-header{padding-inline:16px}
+#panel-content{display:block;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable}
+h3{font-size:14px;font-weight:600;line-height:1.4;margin:0;overflow-wrap:anywhere}
+h4{margin:0;font-size:12px;font-weight:600;line-height:1.4}
+p{margin:0}
+.section{padding:12px 16px}
+.section+.section{padding-top:0}
+.muted{color:var(--c-text-2);font-size:12px;line-height:1.5}
+.card{background:var(--c-bg-2);border:1px solid var(--c-border);border-radius:var(--r);padding:12px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+button.link{all:unset;box-sizing:border-box;cursor:pointer;font-size:12px;font-weight:500;color:var(--c-brand);padding:2px 6px;border-radius:4px}
+button.link:hover{background:var(--c-border)}
+button.link:disabled{opacity:.4;cursor:default;background:none}
+button.link:focus-visible,summary:focus-visible,pre:focus-visible{outline:2px solid var(--c-brand);outline-offset:2px}
+
+/* Selection */
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--c-text-2)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--c-text-2);opacity:.5}
+.dot.on{background:var(--c-ok);opacity:1}
+#selection{margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;max-height:96px;overflow:auto}
+.chip{max-width:100%;padding:2px 8px;border-radius:999px;background:var(--c-bg);border:1px solid var(--c-border);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip.more{color:var(--c-text-2)}
+.empty{margin-top:8px;color:var(--c-text-2);font-size:12px}
+.count{font-size:20px;font-weight:600;line-height:1.2}
+
+/* Scope */
+.scope{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.scope label{font-weight:500;font-size:13px}
+
+/* Results */
+#result[hidden]{display:none}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.stat{background:var(--c-bg-2);border:1px solid var(--c-border);border-radius:var(--r);padding:8px;text-align:center}
+.stat b{display:block;font-size:18px;font-weight:600;line-height:1.2}
+.stat span{font-size:11px;color:var(--c-text-2)}
+.banner{margin-top:8px;padding:8px 10px;border-radius:6px;background:var(--c-warn-bg);color:var(--c-warn-text);font-size:12px}
+.banner[hidden]{display:none}
+.footer-downloads{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.footer-downloads.with-preview{grid-template-columns:repeat(3,minmax(0,1fr))}
+.secondary-button{appearance:none;min-width:0;min-height:36px;padding:8px 10px;border:1px solid var(--c-border);border-radius:6px;background:var(--c-bg-2);color:var(--c-text);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.secondary-button:hover:not(:disabled){background:var(--c-border)}
+.secondary-button:focus-visible{outline:2px solid var(--c-brand);outline-offset:2px}
+.secondary-button:disabled{opacity:.45;cursor:not-allowed}
+details{margin-top:12px;border:1px solid var(--c-border);border-radius:var(--r)}
+summary{cursor:pointer;padding:8px 12px;font-size:12px;font-weight:600;display:flex;justify-content:space-between;align-items:center;list-style:none;border-radius:var(--r)}
+summary::-webkit-details-marker{display:none}
+summary::after{content:'';width:6px;height:6px;border-right:1.5px solid var(--c-text-2);border-bottom:1.5px solid var(--c-text-2);transform:rotate(45deg);transition:transform .15s}
+details[open]>summary::after{transform:rotate(-135deg)}
+details>.body{padding:0 12px 12px}
+#warnings{max-height:180px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}
+pre{margin:0;max-height:380px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--c-bg-2);border:1px solid var(--c-border);border-radius:6px;padding:8px;font:11px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}
+.privacy{margin-top:12px;font-size:11px;color:var(--c-text-2)}
+
+/* Footer */
+#footer-inner{display:flex;flex-direction:column;gap:8px;width:100%;padding:8px 16px}
+#status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--c-text-2);overflow-wrap:anywhere;min-width:0}
+#status.error{color:var(--c-danger)}
+#status.ok{color:var(--c-text)}
+.primary-button{appearance:none;width:100%;min-height:40px;padding:10px 14px;border:1px solid transparent;border-radius:6px;background:var(--c-brand);color:var(--figma-color-text-onbrand,#fff);font:inherit;font-weight:600;cursor:pointer;transition:filter .15s ease,opacity .15s ease}
+.primary-button:hover:not(:disabled){filter:brightness(.94)}
+.primary-button:active:not(:disabled){filter:brightness(.88)}
+.primary-button:focus-visible{outline:2px solid var(--c-brand);outline-offset:2px}
+.primary-button:disabled{opacity:.45;cursor:not-allowed}
+.spinner{width:12px;height:12px;border:2px solid var(--c-border);border-top-color:var(--c-brand);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+.spinner[hidden]{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spinner{animation-duration:2s}summary::after,.primary-button{transition:none}}
+</style></head><body>
+<div id="plugin-root">
+<fig-header><h3>Export design context to selected</h3></fig-header>
+<fig-content id="panel-content">
+  <section class="section">
+    <p class="muted">Create an AI-ready design context from your selection, including layout, component data, tokens and a visual reference.</p>
+  </section>
+
+  <section class="section">
+    <div class="card">
+      <div class="row">
+        <h4>Selection</h4>
+        <button id="refresh" class="link" type="button">Refresh</button>
+      </div>
+      <div id="selection-count" class="count" aria-live="polite">–</div>
+      <div id="selection" aria-label="Selected layers"></div>
+      <p id="selection-empty" class="empty" hidden>Select a frame or layer on the canvas.</p>
+      <p class="badge" style="margin-top:8px"><span id="dot" class="dot"></span><span id="connection" role="status">Connecting…</span></p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="scope">
+      <div>
+        <label for="descendants">Include descendants</label>
+        <p class="muted">Scans nested and hidden layers, up to 20,000 per scan. Your design is never changed.</p>
+      </div>
+      <fig-switch id="descendants" checked></fig-switch>
+    </div>
+  </section>
+
+<section id="result" class="section" hidden>
+    <h4>Scan results</h4>
+    <div class="stats" id="summary" aria-live="polite"></div>
+    <p id="stale" class="banner" hidden></p>
+    <p class="privacy">The PNG preview is available for a single selected root. Keep it beside the Markdown file; review text before sharing.</p>
+    <details id="warn-box"><summary><span>Warnings <span id="warn-count" class="muted"></span></span></summary><div class="body"><p id="warnings" role="status"></p></div></details>
+    <details><summary><span>Markdown preview</span></summary><div class="body"><p class="muted" style="margin-bottom:8px">First 30,000 characters. Downloads contain the full report.</p><pre id="preview" tabindex="0" aria-label="Markdown report preview"></pre></div></details>
+  </section>
+</fig-content>
+<fig-footer sticky><div id="footer-inner"><div id="footer-downloads" class="footer-downloads" hidden><button id="md" class="secondary-button" type="button" disabled>Export .md</button><button id="json" class="secondary-button" type="button" disabled>Export .json</button><button id="png" class="secondary-button" type="button" hidden disabled>Export .png</button></div><div id="status" aria-live="polite"><span id="spinner" class="spinner" hidden></span><span id="status-text">Select a layer</span></div><button id="scan" class="primary-button" type="button" disabled>Scan selection</button></div></fig-footer>
+</div>
+<script id="initial-selection" type="application/json">{}</script>
+<script>
+(() => {
+'use strict'
+const $ = id => document.getElementById(id)
+const send = msg => parent.postMessage({pluginMessage:msg},'*')
+const MAX_CHIPS = 5
+let output = null, busy = false, count = 0, connected = false
+function enabled(id,value){const control=$(id);control.disabled=!value;if(value)control.removeAttribute('disabled');else control.setAttribute('disabled','')}
+function sync(){enabled('scan',count>0&&!busy);enabled('descendants',!busy);enabled('refresh',!busy);enabled('md',!!output&&!busy);enabled('json',!!output&&!busy);enabled('png',!!output&&!!output.previewImage&&!busy);$('footer-downloads').hidden=!output;$('png').hidden=!output||!output.previewImage;$('footer-downloads').classList.toggle('with-preview',!!output&&!!output.previewImage)}
+// kind: '' | 'busy' | 'ok' | 'error'
+function setStatus(text,kind){const s=$('status');$('status-text').textContent=text;s.className=kind==='ok'||kind==='error'?kind:'';$('spinner').hidden=kind!=='busy'}
+function setStale(text){const el=$('stale');el.textContent=text;el.hidden=!text}
+function renderChips(names){
+  const box=$('selection');box.textContent=''
+  names.slice(0,MAX_CHIPS).forEach(n=>{const c=document.createElement('span');c.className='chip';c.textContent=n;c.title=n;box.appendChild(c)})
+  if(names.length>MAX_CHIPS){const c=document.createElement('span');c.className='chip more';c.textContent='+'+(names.length-MAX_CHIPS)+' more';box.appendChild(c)}
+}
+function applySelection(m){
+  count=Number.isFinite(m.count)?m.count:0;busy=Boolean(m.busy)
+  const names=Array.isArray(m.names)?m.names:[]
+  $('selection-count').textContent=count?count+' '+(count===1?'layer':'layers')+' selected':'Nothing selected'
+  $('selection-empty').hidden=count>0
+  renderChips(count?names:[])
+  if(!busy&&!output)setStatus(count?'Ready to scan':'Select a layer to begin')
+  sync()
+}
+$('refresh').addEventListener('click',()=>{$('connection').textContent='Refreshing…';send({type:'refresh-selection'})})
+$('scan').addEventListener('click',()=>{busy=true;output=null;$('result').hidden=true;setStale('');setStatus('Scanning…','busy');sync();send({type:'scan',descendants:Boolean($('descendants').checked)})})
+$('descendants').addEventListener('change',()=>{if(output)setStale('Scope changed. Scan again to update this snapshot.')})
+function download(kind){if(!output||busy)return;const image=kind==='png'?output.previewImage:null;const bytes=image?(image instanceof Uint8Array?image:new Uint8Array(image)):null;const content=kind==='md'?output.markdown:kind==='json'?output.json:bytes;const mime=kind==='md'?'text/markdown;charset=utf-8':kind==='json'?'application/json;charset=utf-8':'image/png';const blob=new Blob([content],{type:mime});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=output.baseName+'.'+kind;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);setStatus('Downloaded '+output.baseName+'.'+kind,'ok')}
+$('md').addEventListener('click',()=>download('md'));$('json').addEventListener('click',()=>download('json'));$('png').addEventListener('click',()=>download('png'))
+function renderSummary(s){
+  const box=$('summary');box.textContent=''
+  ;[['layers','Layers'],['variables','Variables'],['styles','Styles']].forEach(([k,label])=>{
+    const d=document.createElement('div');d.className='stat'
+    const b=document.createElement('b');b.textContent=Number(s[k]||0).toLocaleString('en-US')
+    const l=document.createElement('span');l.textContent=label
+    d.append(b,l);box.appendChild(d)
+  })
+}
+window.addEventListener('message',event=>{
+  const m=event.data&&event.data.pluginMessage;if(!m)return
+  if(m.type==='selection'){connected=true;$('dot').classList.add('on');$('connection').textContent='Live · updates automatically';applySelection(m)}
+  if(m.type==='progress')setStatus('Scanned '+m.count.toLocaleString('en-US')+' layers…','busy')
+  if(m.type==='start'){busy=true;setStatus('Scanning…','busy');sync()}
+  if(m.type==='stale'&&output)setStale('Selection changed. This snapshot is from the previous scan.')
+  if(m.type==='error'){busy=false;setStatus('Scan failed: '+m.message,'error');sync()}
+  if(m.type==='result'){
+    output=m;busy=false;$('result').hidden=false
+    renderSummary(m.summary)
+    const n=m.warnings.length
+    $('warn-count').textContent=n?'('+n+')':'(none)'
+    $('warnings').textContent=n?m.warnings.join('\n'):'No extraction warnings.'
+    $('warn-box').open=n>0&&n<=5
+    setStale('')
+    $('preview').textContent=m.markdown.slice(0,30000);setStatus('Scan complete · ready to export','ok');sync()
+    $('result').scrollIntoView({block:'nearest'})
+  }
+  reportHeight()
+})
+try{const initial=JSON.parse($('initial-selection').textContent||'{}');if(initial.type==='selection')applySelection(initial)}catch(error){$('connection').textContent='Refresh to read your selection.'}
+let lastHeight=0
+function reportHeight(){
+  const measured=Math.ceil($('plugin-root').getBoundingClientRect().height)
+  const height=Math.max(360,Math.min(MAX_PLUGIN_HEIGHT,measured))
+  if(height!==lastHeight){lastHeight=height;send({type:'resize',height})}
+}
+if(typeof ResizeObserver!=='undefined')new ResizeObserver(reportHeight).observe($('plugin-root'))
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(reportHeight)
+const availableHeight=window.screen&&window.screen.availHeight?window.screen.availHeight:MAX_PLUGIN_HEIGHT+180
+const MAX_PLUGIN_HEIGHT=Math.max(360,Math.min(720,availableHeight-180))
+document.documentElement.style.setProperty('--plugin-max-height',MAX_PLUGIN_HEIGHT+'px')
+reportHeight();send({type:'ready'})
+// Bounded retry preserves reliable initialization if the host is still mounting.
+for(let attempt=1;attempt<=8;attempt++)setTimeout(()=>{if(!connected){send({type:'ready'});if(attempt===8)$('connection').textContent='Waiting for connection. Try Refresh.'}},attempt*500)
+})()
+</script></body></html>

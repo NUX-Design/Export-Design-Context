@@ -1,0 +1,17 @@
+{
+  "name": "Export tokens to selected",
+  "id": "0f7ad9a5-f7d0-4fc1-85bd-e7ab82d31dc2",
+  "api": "1.0.0",
+  "main": "code.js",
+  "documentAccess": "dynamic-page",
+  "editorType": [
+    "figma"
+  ],
+  "relaunchButtons": [
+    {
+      "command": "0f7ad9a5-f7d0-4fc1-85bd-e7ab82d31dc2",
+      "name": "Export tokens to selected"
+    }
+  ],
+  "ui": "ui.html"
+}
